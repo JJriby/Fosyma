@@ -1,3 +1,3 @@
-Projet Fosyma 
-Auteur : Jriby Jawher 
-         Sama
+Projet Fosyma
+
+Auteurs : Jriby Jawher, St Sama
