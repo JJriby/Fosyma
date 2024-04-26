@@ -32,49 +32,29 @@ import jade.lang.acl.UnreadableException;
 public class ChaserBehaviour extends SimpleBehaviour {
 
 	private static final long serialVersionUID = 8567689731496787661L;
-
-	private boolean finished = false;
-	
-	private MapRepresentation myMap;
-	
-	private boolean koth;
-	
-	private List<String> AmbushPoint;
-
-	
+	private boolean finished = false;	
+	private MapRepresentation myMap;	
+	private boolean koth;	
+	private List<String> AmbushPoint;	
 	private String objective;
-
-	private String lastKnownPosition;
-	
+	private String lastKnownPosition;	
 	private int tick;
-
-	private List<String> listAmbushAgentPoints;
-	
-	private int maxiter=200;
-	
+	private List<String> listAmbushAgentPoints;	
+	private int maxiter=200;	
 	private boolean move;
-
 	private List<AID> list_agentNames_chasse;
-
-	private List<AID> list_agentNames_explo;
-	
+	private List<AID> list_agentNames_explo;	
 	private int nbAgents;
-
-	private int nbGolem;
-	
-	private int mode;
-	
-	private String oldpos;
-	
+	private int nbGolem;	
+	private int mode;	
+	private String oldpos;	
 	private List<AID> listSenders;
-
 	private List<AID> listblockers;
-	
 	private String blok;
-
 	private int ambusher_sent;
 	
 	private  int message_timer;
+	public String blockpos;
 
 	public ChaserBehaviour(final AbstractDedaleAgent myagent, MapRepresentation myMap, String lastKnownPosition, int nbGolem) {
 		super(myagent);
@@ -92,26 +72,11 @@ public class ChaserBehaviour extends SimpleBehaviour {
 		this.message_timer=0;
 		System.out.println(this.myAgent.getLocalName()+", my last known position is "+this.lastKnownPosition);
 		
-		DFAgentDescription dfd = new DFAgentDescription();
-        ServiceDescription sd = new ServiceDescription();sd.setType( "CHASSE" ); 
-        dfd.addServices(sd);
-        DFAgentDescription[] result=null;
-        try {
-             result=DFService.search(this.myAgent , dfd);
-        } catch (FIPAException e) {
-            e.printStackTrace();
-        }
-        DFAgentDescription me = new DFAgentDescription();
-        me.setName(this.myAgent.getAID());
-        
-        List<AID> list_agentNames = new ArrayList<AID>();
-        for(int i=0;i<result.length;i++) {
-            list_agentNames.add(result[i].getName());
-        }
-        list_agentNames.remove(me.getName());
-        System.out.println(list_agentNames);
-        this.list_agentNames_chasse=list_agentNames;
+		/*
+		 * agents registering into the behavior
+		*/
 		
+		createAgentList("");
 		DFAgentDescription dfd1 = new DFAgentDescription();
 		ServiceDescription sd1 = new ServiceDescription();sd1.setType( "EXPLORATION" ); 
 		dfd1.addServices(sd1);
@@ -124,20 +89,29 @@ public class ChaserBehaviour extends SimpleBehaviour {
 		for(int i=0;i<result1.length;i++) {
 			this.list_agentNames_explo.add(result1[i].getName());
 			}
+		// find optimal trap node
+		findOptTrap(this.myAgent.getLocalName());
+		System.out.println("For this, I will need "+this.listAmbushAgentPoints.size()+" agents to block points "+this.listAmbushAgentPoints.toString());
+	}
 		
+	public void findOptTrap(String agentName)
+	{
+		//counting total agents
 		this.nbAgents=this.list_agentNames_explo.size()+this.list_agentNames_chasse.size()+1;
-		
+		// finding the nodes that are suitable for golems to be trapped
 		this.AmbushPoint=myMap.getAmbushPoint(nbAgents,this.nbGolem, this.mode);
-		System.out.println(this.myAgent.getLocalName()+", We will try to ambush the target at point "+this.AmbushPoint.toString());
+		System.out.println(agentName +", We will try to trap the target at point "+this.AmbushPoint.toString());
 		this.tick=0;
+		// gettinng the surrounding nodes of the trap nodes
 		this.listAmbushAgentPoints=new ArrayList<String>();
 		for (int j=0;j<this.AmbushPoint.size();j++) {
-			List<String> tempora = this.myMap.getSurroundingPoints(this.AmbushPoint.get(j));
+			List<String> optTrap = this.myMap.getSurroundingPoints(this.AmbushPoint.get(j));
 			
-			//on retire le point le plus proche pour laisser un passage au golem
+			//finding the closest surrounding node
+			// optimizing agent placement
 			List<Integer> distances=new ArrayList<Integer>();
-			for (int i=0;i<tempora.size();i++) {
-				String point=tempora.get(i);
+			for (int i=0;i<optTrap.size();i++) {
+				String point=optTrap.get(i);
 				distances.add(this.myMap.getShortestPath(((AbstractDedaleAgent)this.myAgent).getCurrentPosition().toString(),point).size());
 			}
 			int argmin=-1;
@@ -148,36 +122,25 @@ public class ChaserBehaviour extends SimpleBehaviour {
 					argmin=i;
 				}
 			}
-			tempora.remove(argmin);
-			this.listAmbushAgentPoints.addAll(tempora);
+			//the closest node gets removed from surrounding list
+			//This leaves a path open for the golem to enter the ambush zone,
+			// => increasing the likelihood of the golem reaching the ambush point without being blocked prematurely
+			optTrap.remove(argmin);
+			this.listAmbushAgentPoints.addAll(optTrap);
 		}
-		System.out.println("For this, I will need "+this.listAmbushAgentPoints.size()+" agents to block points "+this.listAmbushAgentPoints.toString());
 	}
-		
-
 	@Override
 	public void action() {
 		
 		
-		//critère d'arrêt
+		//Metric to stop
 		String blockpos = null;
 		if (((AbstractDedaleAgent)this.myAgent).getCurrentPosition().toString()==this.oldpos) {
 			boolean gol=false;
 			List<Couple<Location,List<Couple<Observation,Integer>>>> odor = ((AbstractDedaleAgent) this.myAgent).observe();
-			for (int i=0; i<odor.size();i++) {
-				Couple<Location,List<Couple<Observation,Integer>>> data = odor.get(i);
-				String pos = data.getLeft().toString();
-				List<Couple<Observation, Integer>> l = data.getRight();
-				for (int j=0;j<l.size();j++) {
-					Couple<Observation, Integer> da = l.get(j);
-					Observation obs = da.getLeft();
-					if (obs.getName().compareTo("Stench")==0){
-						gol=true;
-						this.blok=pos;
-						blockpos=pos;
-					}
-				}
-			}
+			// detecting golem
+			gol = golemIsHere(odor,"");
+			blockpos = this.blockpos;
 			if (gol) {
 				if (this.myMap.getSurroundingPoints(blockpos).size()==1) {
 					System.out.println(this.myAgent.getLocalName()+",The golem is blocked on a leaf");
@@ -186,33 +149,10 @@ public class ChaserBehaviour extends SimpleBehaviour {
 					this.listblockers=new ArrayList<AID>();
 					System.out.println(this.myAgent.getLocalName()+", Seems that I am blocked by the golem, maybe he's trapped");
 					ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-					msg.setSender(this.myAgent.getAID());
-					msg.setProtocol("Chase");
-					msg.setContent("is_golem_blocked");
-					
+					sendMessages(msg, ACLMessage.INFORM, "Chase", "is_golem_blocked");
 					this.list_agentNames_chasse=new ArrayList();				
-					DFAgentDescription dfd = new DFAgentDescription();
-					ServiceDescription sd = new ServiceDescription();sd.setType( "CHASSE" ); 
-					dfd.addServices(sd);
-					DFAgentDescription[] result=null;
-					try {
-						 result=DFService.search(this.myAgent , dfd);
-					} catch (FIPAException e) {
-						e.printStackTrace();
-					}
-					DFAgentDescription me = new DFAgentDescription();
-					me.setName(this.myAgent.getAID());
-					
-					List<AID> list_agentNames = new ArrayList<AID>();
-					for(int i=0;i<result.length;i++) {
-						list_agentNames.add(result[i].getName());
-					}
-					list_agentNames.remove(me.getName());
-					System.out.println(this.myAgent.getLocalName()+"My agent list "+list_agentNames);
-					this.list_agentNames_chasse=list_agentNames;
-
 						
-						
+					createAgentList(this.myAgent.getLocalName()+"My agent list ");
 					
 					for (int u=0;u<this.list_agentNames_chasse.size();u++) {
 						msg.addReceiver(this.list_agentNames_chasse.get(u));
@@ -229,53 +169,18 @@ public class ChaserBehaviour extends SimpleBehaviour {
 		//ticker management
 		this.tick+=1;
 		if ((this.tick>=this.maxiter)&&(koth==true)) {
-			System.out.println("It takes to much time, let's try another ambush point.");
-			this.AmbushPoint=myMap.getAmbushPoint(nbAgents,this.nbGolem, this.mode);
-			System.out.println("We will try to ambush the target at point "+this.AmbushPoint.toString());
-			this.tick=0;
-			this.listAmbushAgentPoints=new ArrayList<String>();
-			for (int j=0;j<this.AmbushPoint.size();j++) {
-				List<String> tempora = this.myMap.getSurroundingPoints(this.AmbushPoint.get(j));
-				
-				//on retire le point le plus proche pour laisser un passage au golem
-				List<Integer> distances=new ArrayList<Integer>();
-				for (int i=0;i<tempora.size();i++) {
-					String point=tempora.get(i);
-					distances.add(this.myMap.getShortestPath(((AbstractDedaleAgent)this.myAgent).getCurrentPosition().toString(),point).size());
-				}
-				int argmin=-1;
-				int min=Integer.MAX_VALUE;
-				for (int i=0;i<distances.size();i++) {
-					if (distances.get(i)<min) {
-						min=distances.get(i);
-						argmin=i;
-					}
-				}
-				tempora.remove(argmin);
-				this.listAmbushAgentPoints.addAll(tempora);
-			}
+			System.out.println("It takes to much time, let's try another trap point.");	
+			//find optimal trap node
+			findOptTrap("");
 		}
 			
 		
 		
-		//golem sniffing
-		List<Couple<Location, List<Couple<Observation, Integer>>>> odor1 = ((AbstractDedaleAgent) this.myAgent).observe();
-		for (int i=0; i<odor1.size();i++) {
-			Couple<Location, List<Couple<Observation, Integer>>> data = odor1.get(i);
-			String pos = data.getLeft().toString();
-			List<Couple<Observation, Integer>> l = data.getRight();
-			for (int j=0;j<l.size();j++) {
-				Couple<Observation, Integer> da = l.get(j);
-				Observation obs = da.getLeft();
-				if (obs.getName().compareTo("Stench")==0){
-					this.lastKnownPosition=pos;
-					System.out.println(this.myAgent.getLocalName()+", found the golem");
-				}
-			}
-		}
+		//Detecting golem
+		List<Couple<Location,List<Couple<Observation,Integer>>>> odor1 = ((AbstractDedaleAgent) this.myAgent).observe();
+		golemIsHere(odor1 , "2");
 		
-		
-		//messages
+		//Communication 
 		if (koth==true){		
 			if (listAmbushAgentPoints.size()>0) {
 				ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
@@ -324,35 +229,20 @@ public class ChaserBehaviour extends SimpleBehaviour {
 				System.out.println(this.myAgent.getLocalName()+", received an ambusher request");
 				if (this.koth==true) {
 					this.move=false;
-					AID sender = msgReceived.getSender();
-					ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-					msg.setSender(this.myAgent.getAID());
-					msg.setProtocol("Chase");
-					msg.setContent("T"+this.ambusher_sent);
-					msg.addReceiver(sender);				
-					((AbstractDedaleAgent)this.myAgent).sendMessage(msg);	
+					sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,"T"+this.ambusher_sent);
+					
 				}
 				else {
 					this.move=false;
-					AID sender = msgReceived.getSender();
-					ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-					msg.setSender(this.myAgent.getAID());
-					msg.setProtocol("Chase");
-					msg.setContent("here");
-					msg.addReceiver(sender);				
-					((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+					sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,"here");
 				}
 					
 			}
 			else {
 				if (sgreceived.compareTo("here")==0) {
 					if (listAmbushAgentPoints.size()>0) {
-						AID sender = msgReceived.getSender();
-						ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-						msg.setSender(this.myAgent.getAID());
-						msg.setProtocol("Chase");
-						
-						//donner le point le plus loin pour essayer d'éviter les interblocages
+						//Get the farthest point to avoid dead ends
+						// to ensure no two agents are sent to the same location 
 						List<Integer> distances=new ArrayList<Integer>();
 						for (int i=0;i<listAmbushAgentPoints.size();i++) {
 							String point=listAmbushAgentPoints.get(i);
@@ -367,20 +257,12 @@ public class ChaserBehaviour extends SimpleBehaviour {
 							}
 						}
 						String poen=listAmbushAgentPoints.remove(argmax);
-						msg.setContent(poen);
-						msg.addReceiver(sender);				
-						((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+						sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,poen);
 						this.ambusher_sent+=1;
 						this.move=true;
 					}
 					else {
-						AID sender = msgReceived.getSender();
-						ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-						msg.setSender(this.myAgent.getAID());
-						msg.setProtocol("Chase");
-						msg.setContent("not_needed");
-						msg.addReceiver(sender);				
-						((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+						sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,"not_needed");
 						this.move=true;
 					}
 				}
@@ -421,13 +303,7 @@ public class ChaserBehaviour extends SimpleBehaviour {
 										System.out.println("the other's ambusher count "+ othersent);
 										if (othersent>this.ambusher_sent) {
 											this.koth=false;
-											AID sender = msgReceived.getSender();
-											ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-											msg.setSender(this.myAgent.getAID());
-											msg.setProtocol("Chase");
-											msg.setContent("you_lead");
-											msg.addReceiver(sender);				
-											((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+											sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,"you_lead");
 											this.move=true;
 											System.out.println(this.myAgent.getLocalName()+" won't be the leader");
 											
@@ -437,13 +313,8 @@ public class ChaserBehaviour extends SimpleBehaviour {
 												this.move=true;
 											}
 											else {
-												AID sender = msgReceived.getSender();
-												ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-												msg.setSender(this.myAgent.getAID());
-												msg.setProtocol("Chase");
-												msg.setContent("A"+this.myAgent.getLocalName());
-												msg.addReceiver(sender);				
-												((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+
+												sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,"A"+this.myAgent.getLocalName());
 												this.move=true;
 											}
 											
@@ -457,13 +328,8 @@ public class ChaserBehaviour extends SimpleBehaviour {
 											int myID=Integer.parseInt(this.myAgent.getLocalName().substring(5,this.myAgent.getLocalName().length()));
 											if (otherID<myID) {
 												this.koth=false;
-												AID sender = msgReceived.getSender();
-												ACLMessage msg=new ACLMessage(ACLMessage.INFORM);
-												msg.setSender(this.myAgent.getAID());
-												msg.setProtocol("Chase");
-												msg.setContent("you_lead");
-												msg.addReceiver(sender);				
-												((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+
+												sendMessages(msgReceived,ACLMessage.INFORM , "Chase" ,"you_lead");
 												this.move=true;
 												System.out.println(this.myAgent.getLocalName()+" won't be the leader");
 												
@@ -512,7 +378,6 @@ public class ChaserBehaviour extends SimpleBehaviour {
 				
 			}
 			else {
-				//random movement
 				System.out.println(this.myAgent.getLocalName()+", I am moving randomly");
 				
 				//Random move from the current position
@@ -541,6 +406,68 @@ public class ChaserBehaviour extends SimpleBehaviour {
 	@Override
 	public boolean done() {
 		return finished;
+	}
+	
+	// agents registering into the behavior 
+	public void createAgentList(String prefix)
+	{
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();sd.setType( "CHASSE" ); 
+		dfd.addServices(sd);
+		DFAgentDescription[] result=null;
+		try {
+			 result=DFService.search(this.myAgent , dfd);
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		DFAgentDescription me = new DFAgentDescription();
+		me.setName(this.myAgent.getAID());
+		
+		List<AID> list_agentNames = new ArrayList<AID>();
+		for(int i=0;i<result.length;i++) {
+			list_agentNames.add(result[i].getName());
+		}
+		list_agentNames.remove(me.getName());
+		System.out.println(prefix+list_agentNames);
+		this.list_agentNames_chasse=list_agentNames;
+	}
+	
+	// method to send messeges 
+	public void sendMessages(ACLMessage msgReceived,int msgType , String protocol , String content)
+	{
+		AID sender = msgReceived.getSender();
+		ACLMessage msg=new ACLMessage(msgType);
+		msg.setSender(this.myAgent.getAID());
+		msg.setProtocol(protocol);
+		msg.setContent(content);
+		msg.addReceiver(sender);				
+		((AbstractDedaleAgent)this.myAgent).sendMessage(msg);
+	}
+	
+	// method to detect golem ; True False
+	public boolean golemIsHere(List<Couple<Location, List<Couple<Observation, Integer>>>> odor , String behavior )
+	{
+		boolean gol=false;
+		for (int i=0; i<odor.size();i++) {
+			Couple<Location, List<Couple<Observation, Integer>>> data = odor.get(i);
+			String pos = data.getLeft().toString();
+			List<Couple<Observation, Integer>> l = data.getRight();
+			for (int j=0;j<l.size();j++) {
+				Couple<Observation, Integer> da = l.get(j);
+				Observation obs = da.getLeft();
+				if(behavior == "")
+				{
+					if (obs.getName().compareTo("Stench")==0){
+						gol=true;
+						this.blok=pos;
+						this.blockpos=pos;
+					}
+				}
+				
+			}
+		}
+		
+		return gol;
 	}
 
 }
