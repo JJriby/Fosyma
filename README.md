@@ -1,3 +1,3 @@
 Projet Fosyma
 
-Auteurs : Jriby Jawher, St Sama
+Auteurs : Jriby Jawher, Satariyan Sama
