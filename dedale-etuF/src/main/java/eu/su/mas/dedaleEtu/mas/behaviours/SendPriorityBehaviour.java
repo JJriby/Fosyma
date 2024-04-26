@@ -7,7 +7,7 @@ import java.util.List;
 import dataStructures.tuple.Couple;
 import eu.su.mas.dedale.mas.AbstractDedaleAgent;
 import eu.su.mas.dedaleEtu.mas.agents.dummies.explo.ExploreCoopAgent;
-import eu.su.mas.dedaleEtu.mas.knowledge.Knowledge;
+import eu.su.mas.dedaleEtu.mas.knowledge.Informations;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -15,6 +15,10 @@ import jade.lang.acl.UnreadableException;
 
 public class SendPriorityBehaviour extends OneShotBehaviour {
 
+	/**
+	 * 
+	 */
+	private int value=0;
 	private static final long serialVersionUID = -314754149388556935L;
 
 	public SendPriorityBehaviour(ExploreCoopAgent exploreCoopAgent) {
@@ -30,9 +34,9 @@ public class SendPriorityBehaviour extends OneShotBehaviour {
 		ACLMessage msgReceived=this.myAgent.blockingReceive(msgTemplate,1000);
 		
 		if(msgReceived!=null) {
-			Knowledge info=null;
+			Informations info=null;
 			try {
-				info = (Knowledge) msgReceived.getContentObject();
+				info = (Informations) msgReceived.getContentObject();
 			} catch (UnreadableException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

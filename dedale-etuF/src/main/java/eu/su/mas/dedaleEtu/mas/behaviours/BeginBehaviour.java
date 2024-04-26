@@ -46,6 +46,7 @@ public class BeginBehaviour extends OneShotBehaviour {
 		for (int i = 0; i < result.length; i++) {
 			list_agentNames.add(result[i].getName());
 		}
+		
 		list_agentNames.remove(me.getName());
 		System.out.println("_____________________LIST AGENTS______________________ FOR "+ this.myAgent.getLocalName());
 		System.out.println(list_agentNames);

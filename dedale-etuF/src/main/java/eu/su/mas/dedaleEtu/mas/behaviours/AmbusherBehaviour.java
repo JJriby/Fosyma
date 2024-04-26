@@ -28,12 +28,20 @@ import jade.lang.acl.UnreadableException;
 public class AmbusherBehaviour extends SimpleBehaviour {
 
 	private static final long serialVersionUID = 8567689731496787661L;
-	private boolean finished = false;	
-	private MapRepresentation myMap;	
-	private int ticker;	
-	private int time_limit;	
+
+	private boolean finished = false;
+	
+	private MapRepresentation myMap;
+	
+	private int ticker;
+	
+	private int time_limit;
+	
 	private boolean accomplished;
-	private boolean timed;	
+	
+	private boolean timed;
+
+	
 	private String objective;
 
 	public AmbusherBehaviour(final AbstractDedaleAgent myagent, MapRepresentation myMap,String objective, int ticker, int time_limit) {
@@ -49,13 +57,24 @@ public class AmbusherBehaviour extends SimpleBehaviour {
 		
 		
 	}
-	
 
 	@Override
 	public void action() {
 		System.out.println(this.myAgent.getLocalName()+",I have to block position "+this.objective+" and I am at position "+((AbstractDedaleAgent)this.myAgent).getCurrentPosition());
 		List<Couple<Location,List<Couple<Observation,Integer>>>> odor = ((AbstractDedaleAgent) this.myAgent).observe();
-		golemIsHere(odor , "");
+		for (int i=0; i<odor.size();i++) {
+			Couple<Location, List<Couple<Observation, Integer>>> data = odor.get(i);
+			String pos = data.getLeft().toString();
+			List<Couple<Observation, Integer>> l = data.getRight();
+			for (int j=0;j<l.size();j++) {
+				Couple<Observation, Integer> da = l.get(j);
+				Observation obs = da.getLeft();
+				if (obs.getName().compareTo("Stench")==0){
+					System.out.println(this.myAgent.getLocalName()+" ,I sense a golem near me, better stop my timer for a potential blocking");
+					this.timed=false;
+					}
+				}
+			}
 		if (timed) {
 			this.ticker+=1;
 		}
@@ -72,7 +91,18 @@ public class AmbusherBehaviour extends SimpleBehaviour {
 				msg.setProtocol("Chase");
 				boolean y=false;
 				List<Couple<Location,List<Couple<Observation,Integer>>>> odor1 = ((AbstractDedaleAgent) this.myAgent).observe();
-				y = golemIsHere(odor1 , "2");
+				for (int i=0; i<odor1.size();i++) {
+					Couple<Location, List<Couple<Observation, Integer>>> data = odor1.get(i);
+					String pos = data.getLeft().toString();
+					List<Couple<Observation, Integer>> l = data.getRight();
+					for (int j=0;j<l.size();j++) {
+						Couple<Observation, Integer> da = l.get(j);
+						Observation obs = da.getLeft();
+						if (obs.getName().compareTo("Stench")==0){
+							y=true;
+							}
+						}
+					}
 				if (y) {
 					msg.setContent("seems_to_me");
 				}
@@ -102,7 +132,7 @@ public class AmbusherBehaviour extends SimpleBehaviour {
 			String myPosition=((AbstractDedaleAgent)this.myAgent).getCurrentPosition().toString();
 			List<String> route = this.myMap.getShortestPath(myPosition,objective);
 			if (route.size()==0) {
-				System.out.println(this.myAgent.getLocalName()+", at the  node");
+				System.out.println(this.myAgent.getLocalName()+", I am at the objective point");
 				this.accomplished=true;
 			}
 			else {
@@ -120,33 +150,5 @@ public class AmbusherBehaviour extends SimpleBehaviour {
 	public boolean done() {
 		return finished;
 	}
-	
-	// method to detect golem ; True False
-	public boolean golemIsHere(List<Couple<Location, List<Couple<Observation, Integer>>>> odor , String behavior)
-	{
-		boolean gol=false;
-		for (int i=0; i<odor.size();i++) {
-			Couple<Location, List<Couple<Observation, Integer>>> data = odor.get(i);
-			String pos = data.getLeft().toString();
-			List<Couple<Observation, Integer>> l = data.getRight();
-			for (int j=0;j<l.size();j++) {
-				Couple<Observation, Integer> da = l.get(j);
-				Observation obs = da.getLeft();
-				if(behavior == "2")
-				{
-					if (obs.getName().compareTo("Stench")==0){
-						return true;
-					}
-				}
-				else
-					if (obs.getName().compareTo("Stench")==0){
-						this.timed=false;
-						return false;
-						}
-					}	
-				
-			}
-		return gol;
-		}
 
 }

@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import eu.su.mas.dedale.mas.AbstractDedaleAgent;
 import eu.su.mas.dedale.mas.agent.behaviours.platformManagment.startMyBehaviours;
+import eu.su.mas.dedaleEtu.mas.behaviours.HuntBeginBehaviour;
+import eu.su.mas.dedaleEtu.mas.behaviours.HuntSearchBehaviour;
+import eu.su.mas.dedaleEtu.mas.behaviours.RandomWalkBehaviour2;
+import eu.su.mas.dedaleEtu.mas.behaviours.HandleHunterMessagesBehaviour;
 import eu.su.mas.dedaleEtu.mas.behaviours.HuntApproachBehaviour;
 import eu.su.mas.dedaleEtu.mas.behaviours.HuntAttackBehaviour;
-import eu.su.mas.dedaleEtu.mas.behaviours.HuntSearchBehaviour;
-import eu.su.mas.dedaleEtu.mas.behaviours.HuntBeginBehaviour;
 import jade.core.AID;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.FSMBehaviour;
@@ -20,22 +22,61 @@ import eu.su.mas.dedaleEtu.mas.knowledge.MapRepresentation;
 public class HunterAgent extends AbstractDedaleAgent {
     private static final long serialVersionUID = -7979469610241668140L;
     private MapRepresentation myMap;
-    private List<AID> list_agentNames;
+    private List<AID> list_HunteragentNames;
+    
+    private RandomWalkBehaviour2 randomWalkBehaviour;
+    
+    private String stenchDetectedPosition = null;
 
     protected void setup() {
-        super.setup();
-        
+    	super.setup();
         registerAgentService();
 
+        
+        
+        randomWalkBehaviour = new RandomWalkBehaviour2(this);
+
+        // Other behaviors for initial setup
         List<Behaviour> lb = new ArrayList<>();
+        lb.add(randomWalkBehaviour);
+        lb.add(new HuntBeginBehaviour(this));
 
-        FSMBehaviour fsm = setupFSMBehaviour();
-        lb.add(fsm);
-
+        // Start initial behaviors
         addBehaviour(new startMyBehaviours(this, lb));
+        
+        // Handle messages continuously throughout the agent's life
+        
+        
 
-        System.out.println("The agent " + getLocalName() + " is started.");
+        System.out.println("The agent " + getLocalName() + " is initialized.");
     }
+    
+//    private void register_ListHunterAgentNames(DFAgentDescription dfd) {
+//    	
+//    	List<AID> hunterAids = new ArrayList<>();
+//        
+//		DFAgentDescription[] result = null;
+//		
+//		
+//		DFAgentDescription me = new DFAgentDescription();
+//		me.setName(this.getAID());
+//		
+//		try {
+//			result = DFService.search(this, dfd);
+//		} catch (FIPAException e) {
+//			e.printStackTrace();
+//		}
+//		for (int i = 0; i < result.length; i++) {
+//			hunterAids.add(result[i].getName());
+//			System.out.println("__________Coop Hunter added for____________"+this.getLocalName());
+//			System.out.println(result[i].getName());
+//			System.out.println("_____________________________________________");
+//		}
+//		hunterAids.remove(me.getName());
+//		
+//		this.list_HunteragentNames = hunterAids;
+//		System.out.println();
+//    }
 
     private void registerAgentService() {
         DFAgentDescription dfd = new DFAgentDescription();
@@ -50,12 +91,14 @@ public class HunterAgent extends AbstractDedaleAgent {
         } catch (FIPAException fe) {
             fe.printStackTrace();
         }
+//        register_ListHunterAgentNames(dfd);
     }
 
-    private FSMBehaviour setupFSMBehaviour() {
+    public void startFSMBehaviours() {
+    	removeBehaviour(randomWalkBehaviour);
+    	addBehaviour(new HandleHunterMessagesBehaviour(this, this.myMap));
+        
         FSMBehaviour fsm = new FSMBehaviour(this) {
-            private static final long serialVersionUID = 1L;
-
             @Override
             public int onEnd() {
                 System.out.println("FSM behaviour completed.");
@@ -64,56 +107,39 @@ public class HunterAgent extends AbstractDedaleAgent {
             }
         };
 
-        fsm.registerFirstState(new HuntBeginBehaviour(this), "BEGIN");
-        fsm.registerState(new HuntSearchBehaviour(this, getMap()), "SEARCH");
-        fsm.registerState(new HuntApproachBehaviour(this, getMap()), "APPROACH");
-        fsm.registerLastState(new HuntAttackBehaviour(this, getMap()), "ATTACK");
+        // Register states with the FSM
+        fsm.registerFirstState(new HuntSearchBehaviour(this, myMap), "SEARCH");
+        fsm.registerState(new HuntApproachBehaviour(this, myMap), "APPROACH");
+        fsm.registerLastState(new HuntAttackBehaviour(this, myMap), "ATTACK");
 
-        fsm.registerTransition("BEGIN", "SEARCH", 1);
-        fsm.registerTransition("SEARCH", "APPROACH", 1);
-        fsm.registerDefaultTransition("SEARCH", "SEARCH");
+        // Configure transitions
+        fsm.registerDefaultTransition("SEARCH", "APPROACH", new String[] {"SEARCH", "APPROACH"});
         fsm.registerTransition("APPROACH", "ATTACK", 1);
-        fsm.registerDefaultTransition("APPROACH", "SEARCH");
-        fsm.registerTransition("ATTACK", "SEARCH", 0);
-        fsm.registerDefaultTransition("ATTACK", "SEARCH");
+        fsm.registerTransition("APPROACH", "SEARCH", 0);
 
-        return fsm;
+        addBehaviour(fsm);
     }
 
-    @Override
-    protected void takeDown() {
-        deregisterAgentService();
-        System.out.println("Agent " + getLocalName() + ": Done and dusted!");
-    }
-
-    private void deregisterAgentService() {
-        try {
-            DFService.deregister(this);
-        } catch (Exception e) {
-            System.err.println("Error deregistering agent " + getLocalName());
-        }
-    }
-    
-    
     public MapRepresentation getMap() {
+        return this.myMap;
+    }
 
-		return this.myMap;
-	}
-    
     public void setMap(MapRepresentation mapRepresentation) {
-		this.myMap = mapRepresentation;
+        this.myMap = mapRepresentation;
+    }
 
-	}
+    public List<AID> getList_HunteragentNames() {
+        return list_HunteragentNames;
+    }
+
+    public void setList_HunteragentNames(List<AID> list_agentNames) {
+        this.list_HunteragentNames = list_agentNames;
+    }
     
-    
-    public List<AID> getList_agentNames() {
-		return list_agentNames;
-	}
-
-	public void setList_agentNames(List<AID> list_agentNames) {
-		this.list_agentNames = list_agentNames;
-	}
-
-
-	
+    public void set_stenchDetectedPosition(String nodeID) {
+    	this.stenchDetectedPosition = nodeID;
+    }
+    public String get_stenchDetectedPosition() {
+    	return this.stenchDetectedPosition;
+    }
 }

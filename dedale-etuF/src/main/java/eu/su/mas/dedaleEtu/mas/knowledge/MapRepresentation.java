@@ -58,8 +58,8 @@ public class MapRepresentation implements Serializable {
 	private String nodeStyle_agent = "node.open {"+"fill-color: blue;"+"}";
 	private String nodeStyle=defaultNodeStyle+nodeStyle_agent+nodeStyle_open;
 
-	private Graph g; //data structure non serializable
-	private Viewer viewer; //ref to the display,  non serializable
+	private transient Graph g; //data structure non serializable
+	private transient Viewer viewer; //ref to the display,  non serializable
 	private Integer nbEdges;//used to generate the edges ids
 
 	private SerializableSimpleGraph<String, MapAttribute> sg;//used as a temporary dataStructure during migration
@@ -483,6 +483,33 @@ public class MapRepresentation implements Serializable {
 		}
 		return points;
 	}
+	
+	public void setGraphData(SerializableSimpleGraph<String, MapAttribute> sGraph) {
+        // Ensure the graph is initialized
+        if (this.g == null) {
+            this.g = new SingleGraph("My world vision");
+            this.g.setAttribute("ui.stylesheet", nodeStyle);
+        }
+
+        // Apply data from the serializable graph
+        for (SerializableNode<String, MapAttribute> node : sGraph.getAllNodes()) {
+            Node graphNode = this.g.getNode(node.getNodeId());
+            if (graphNode == null) { // If node doesn't exist, add it
+                graphNode = this.g.addNode(node.getNodeId());
+            }
+            graphNode.setAttribute("ui.class", node.getNodeContent().toString());
+            graphNode.setAttribute("ui.label", node.getNodeId());
+        }
+
+        for (SerializableNode<String, MapAttribute> node : sGraph.getAllNodes()) {
+            for (String edgeId : sGraph.getEdges(node.getNodeId())) {
+                if (this.g.getEdge(edgeId) == null) {
+                    this.g.addEdge(edgeId, node.getNodeId(), edgeId);
+                }
+            }
+        }
+    }
+	
 
 
 }

@@ -49,11 +49,10 @@ public class ExploBehaviour extends OneShotBehaviour {
 	        }
 
 
-			//when visiting, make it 'closed' and removing it from open
+			//1) remove the current node from openlist and add it to closedNodes.
 			this.myAgent.getMap().addNode(myPosition, MapAttribute.closed);
 
-			// get the surrounding nodes and, 
-			// if not in closedNodes, add them to open nodes.
+			//2) get the surrounding nodes and, if not in closedNodes, add them to open nodes.
 			String nextNode=null;
 			if(((ExploreCoopAgent)this.myAgent).getPriority().size()>0) {
 				System.out.println("test");
@@ -65,26 +64,26 @@ public class ExploBehaviour extends OneShotBehaviour {
 			}
 			Iterator<Couple<Location, List<Couple<Observation, Integer>>>> iter=lobs.iterator();
 			while(iter.hasNext()){
-				//checking if the node and edge exist ( their existance not necessarily together )
 				String nodeId=iter.next().getLeft().toString();
 				boolean isNewNode=this.myAgent.getMap().addNewNode(nodeId);
+				//the node may exist, but not necessarily the edge
 				if (myPosition!=nodeId) {
 					this.myAgent.getMap().addEdge(myPosition, nodeId);
 					if (nextNode==null && isNewNode) nextNode=nodeId;
 				}
 			}
 
-			// while openNodes is not empty, continues.
+			//3) while openNodes is not empty, continues.
 			if (!this.myAgent.getMap().hasOpenNode()){
-				//Exploration finished
+				//Explo finished
 				value=3;
 				finished=true;
 				
 
 			}else{
 
-				// select next move.
-				// If there exist one open node directly reachable, go for it,
+				//4) select next move.
+				//4.1 If there exist one open node directly reachable, go for it,
 				//	 otherwise choose one from the openNode list, compute the shortestPath and go for it
 				if (nextNode==null){
 					//no directly accessible openNode and no node in the priority list

@@ -235,4 +235,11 @@ public class ExploreCoopAgent extends AbstractDedaleAgent {
 		this.addBehaviour(passiveExplo);
 
 	}
+	
+	public void takeDown() {
+		super.takeDown();
+	}
+	
+	
+	
 }

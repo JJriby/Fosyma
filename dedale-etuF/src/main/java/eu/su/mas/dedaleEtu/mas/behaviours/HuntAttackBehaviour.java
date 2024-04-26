@@ -17,7 +17,7 @@ public class HuntAttackBehaviour extends SimpleBehaviour {
 
 	@Override
 	public void action() {
-		// TODO Auto-generated method stub
+//		System.out.println("ATTAAAAAAAAAAAAAAAAAAACK!!");
 
 	}
 

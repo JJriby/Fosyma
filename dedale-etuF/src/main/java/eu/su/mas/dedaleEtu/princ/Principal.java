@@ -380,7 +380,7 @@ public class Principal {
 		agentName = "Elsa";
 
 		// 3) If you want to give specific parameters to your agent, add them here
-		Object[] entityParametersExplo1 = { "Tim" };
+		Object[] entityParametersExplo1 = { "Tim","Hunter1","Hunter2" };
 
 		// 4) Give the class name of your agent to let the system instantiate it
 		// ag=createNewDedaleAgent(c, agentName,DummyMovingAgent.class.getName(),
@@ -421,14 +421,13 @@ public class Principal {
 		agentName = "Hunter2";
 		//
 		// //3) If you want to give specific parameters to your agent, add them here
-		Object[] entityParametersHunter2 = { "Hunter1" };
+		Object[] entityParametersHunter2 = { "Hunter1"};
 		//
 		// //4) Give the class name of your agent to let the system instantiate it
 		ag = createNewDedaleAgent(c, agentName, HunterAgent.class.getName(), entityParametersHunter2);// ExploreSoloAgent
 		agentList.add(ag);
+//
 
-		//
-		//
 
 		/*********
 		 * AGENT Explo2
@@ -442,7 +441,7 @@ public class Principal {
 		agentName = "Tim";
 		//
 		// //3) If you want to give specific parameters to your agent, add them here
-		Object[] entityParametersExplo2 = { "Elsa" };
+		Object[] entityParametersExplo2 = { "Elsa","Hunter1","Hunter2" };
 		//
 		// //4) Give the class name of your agent to let the system instantiate it
 		ag = createNewDedaleAgent(c, agentName, ExploreCoopAgent.class.getName(), entityParametersExplo2);// ExploreSoloAgent
