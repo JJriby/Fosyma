@@ -77,7 +77,7 @@ public final class ConfigurationFile {
 	
 	//public static String INSTANCE_TOPOLOGY="resources/topology/map2020-topologyExam1-graph.dgs";
 	//public static String INSTANCE_TOPOLOGY="resources/topology/HouatTopology";
-	public static String INSTANCE_TOPOLOGY="resources/topology/map2018-topology-ica";
+//	public static String INSTANCE_TOPOLOGY="resources/topology/map2018-topology-ica";
 	//public static String INSTANCE_TOPOLOGY="resources/topology/map2021-topologyExam1-tree.dgs";
 	//public static String INSTANCE_TOPOLOGY="resources/interlocking/mapInterlocking2-topology";
 	//public static String INSTANCE_TOPOLOGY="resources/topology/map2023-topologyExam.dgs";
@@ -87,6 +87,11 @@ public final class ConfigurationFile {
 	//public static String INSTANCE_TOPOLOGY="resources/topology/map2022-topologyExam-V2b.dgs";
 	//public static String INSTANCE_TOPOLOGY="resources/map2019-topologyExam1";
 	
+	//CONFIG 1
+	public static String INSTANCE_TOPOLOGY="resources/topology/map2024-topologyExam1.dgs";
+	
+	//CONFIG2
+//	public static String INSTANCE_TOPOLOGY="resources/topology/map2024-topologyExam2-s.dgs";
 
 	
 	/**
@@ -152,7 +157,7 @@ public final class ConfigurationFile {
 	 */
 	//public static String INSTANCE_CONFIGURATION_ENTITIES=null;
 	//public static String INSTANCE_CONFIGURATION_ENTITIES="resources/agentExplo.json";
-	public static String INSTANCE_CONFIGURATION_ENTITIES="resources/agentExplo-2.json";
+//	public static String INSTANCE_CONFIGURATION_ENTITIES="resources/agentExplo-2.json";
 	//public static String INSTANCE_CONFIGURATION_ENTITIES="resources/agentExploCoop-2";
 	//public static String INSTANCE_CONFIGURATION_ENTITIES="resources/agentExploCoop-2.json";
 	//public static String INSTANCE_CONFIGURATION_ENTITIES="resources/treasureHunt/map2023-entities.json";
@@ -167,6 +172,12 @@ public final class ConfigurationFile {
 	//public static String INSTANCE_CONFIGURATION_ENTITIES="resources/monoAgent-entities";
 	//public static String INSTANCE_CONFIGURATION_ENTITIES="resources/mapInterlocking2-entities";
 	//public static String INSTANCE_CONFIGURATION_ENTITIES=null;
+	
+	//CONFIG 1 
+	public static String INSTANCE_CONFIGURATION_ENTITIES="resources/map2024-1-entities.json";
+//	
+	//CONFIG 2
+//	public static String INSTANCE_CONFIGURATION_ENTITIES="resources/map2024-2-entities.json";
 	
 
 
